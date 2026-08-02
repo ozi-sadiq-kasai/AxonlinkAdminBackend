@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id                  String              @id @default(uuid())
+  email               String              @unique
+  passwordHash        String
+  firstName           String
+  lastName            String
+  role                AdminRole           @default(ADMIN)
+  status              AdminStatus         @default(ACTIVE)
+  failedLoginAttempts Int                 @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  sessions            AdminSession[]
+  passwordResetCodes  PasswordResetCode[]
+  auditLogs            AdminAuditLog[]
+  invitationsCreated  AdminInvitation[]   @relation("InvitationCreator")
+
+  @@index([role, status])
+}
+
+model AdminSession {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model PasswordResetCode {
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model AdminInvitation {
+  id          String     @id @default(uuid())
+  email       String
+  tokenHash   String     @unique
+  role        AdminRole  @default(ADMIN)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime   @default(now())
+  createdById String?
+  createdBy   AdminUser? @relation("InvitationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([email, acceptedAt])
+  @@index([expiresAt])
+}
+
+model AdminAuditLog {
+  id         String     @id @default(uuid())
+  adminId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime   @default(now())
+  admin      AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([adminId, createdAt])
+  @@index([action, createdAt])
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  SUPPORT
+  AUDITOR
+}
+
+enum AdminStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
