@@ -1,0 +1,20 @@
+CREATE TABLE "SystemControlSettings" (
+  "id" TEXT NOT NULL DEFAULT 'global',
+  "maxQueueSize" INTEGER NOT NULL DEFAULT 40,
+  "maxWaitMinutes" INTEGER NOT NULL DEFAULT 252,
+  "whoCanRefer" TEXT NOT NULL DEFAULT 'CLINICIANS_AND_SPECIALISTS',
+  "whoCanAcceptReferral" TEXT NOT NULL DEFAULT 'SPECIALIST',
+  "referralAutoCancelDays" INTEGER NOT NULL DEFAULT 3,
+  "reReferralEnabled" BOOLEAN NOT NULL DEFAULT true,
+  "multiReferralLimit" INTEGER NOT NULL DEFAULT 3,
+  "maxBookingsPerPatientDay" INTEGER NOT NULL DEFAULT 1,
+  "advanceBookingLimitDays" INTEGER NOT NULL DEFAULT 40,
+  "cancellationRole" TEXT NOT NULL DEFAULT 'PATIENT_AND_CLINICIAN',
+  "emailNotificationsEnabled" BOOLEAN NOT NULL DEFAULT false,
+  "pushNotificationsEnabled" BOOLEAN NOT NULL DEFAULT false,
+  "smsNotificationsEnabled" BOOLEAN NOT NULL DEFAULT false,
+  "updatedById" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  CONSTRAINT "SystemControlSettings_pkey" PRIMARY KEY ("id")
+);

@@ -38,3 +38,36 @@ Only the first account can use `ADMIN_BOOTSTRAP_SECRET`. Send it in the `X-Admin
 - Never store the refresh token in local storage.
 
 Password recovery is a three-step flow: forgot password, verify reset code, then reset password. In development, when SMTP is not configured, the six-digit code is written to the backend terminal.
+
+## Railway connection
+
+On the backend service, use Railway's private Postgres variable reference:
+
+```env
+DATABASE_URL=${{AxonlinkAdmin.DATABASE_URL}}
+CORS_ALLOWED_ORIGINS=https://your-admin-frontend.example
+```
+
+Replace `AxonlinkAdmin` with the exact name of the PostgreSQL service. On the
+frontend service, set `VITE_ADMIN_API_URL` to the backend's generated public
+HTTPS domain. Do not put a database URL or any token secret in the frontend.
+
+## Axonlink app backend connection
+
+Patient, clinician, appointment, referral, and access-grant data remains owned
+by `axonlinkappbackend`. Configure the admin service with:
+
+```env
+AXONLINK_APP_API_URL=http://your-app-backend:5030
+AXONLINK_SERVICE_SECRET=the-same-random-secret-used-by-the-app-backend
+```
+
+Configure `axonlinkappbackend` with:
+
+```env
+ADMIN_SERVICE_SECRET=the-same-random-secret-used-by-the-admin-backend
+```
+
+Generate the shared value with `openssl rand -hex 32`. On Railway, use the app
+backend's private service hostname for `AXONLINK_APP_API_URL`. The browser must
+never receive this secret or call the internal app endpoints directly.

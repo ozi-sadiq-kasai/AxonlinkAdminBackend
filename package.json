@@ -5,7 +5,8 @@
   "type": "module",
   "main": "src/app.js",
   "scripts": {
-    "dev": "node --watch src/app.js",
+    "dev": "node src/app.js",
+    "dev:watch": "node --watch src/app.js",
     "start": "node src/app.js",
     "test": "node --test",
     "prisma:generate": "prisma generate",

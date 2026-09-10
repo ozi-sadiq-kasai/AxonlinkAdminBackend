@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import { config } from "../config.js";
 import { prisma } from "../prisma.js";
 import { audit, createAuthenticatedSession, hashPassword, refreshCookieOptions, secureEqual } from "../services/authService.js";
-import { sendPasswordResetCode } from "../services/emailService.js";
+import { sendAdminInvitation, sendPasswordResetCode } from "../services/emailService.js";
 import { parseCookies } from "../utils/cookies.js";
 import { hashToken, randomResetCode, randomToken, signPasswordResetToken, verifyPasswordResetToken, verifyRefreshToken } from "../utils/tokens.js";
 import { getPasswordErrors, isValidEmail, normalizeEmail, publicAdmin } from "../utils/validation.js";
@@ -48,7 +48,7 @@ export async function signup(req, res, next) {
 
     const user = await prisma.$transaction(async (tx) => {
       const created = await tx.adminUser.create({
-        data: { email, firstName, lastName, passwordHash: await hashPassword(password), role },
+        data: { email, firstName, lastName, phone: invitation?.phone || null, passwordHash: await hashPassword(password), role },
       });
       if (invitation) await tx.adminInvitation.update({ where: { id: invitation.id }, data: { acceptedAt: new Date() } });
       return created;
@@ -203,16 +203,21 @@ export async function me(req, res) {
 export async function createInvitation(req, res, next) {
   try {
     const email = normalizeEmail(req.body.email);
+    const firstName = String(req.body.firstName || "").trim();
+    const lastName = String(req.body.lastName || "").trim();
+    const phone = String(req.body.phone || "").trim() || null;
     const role = String(req.body.role || "ADMIN");
     const allowedRoles = ["ADMIN", "SUPPORT", "AUDITOR", "SUPER_ADMIN"];
-    if (!isValidEmail(email) || !allowedRoles.includes(role)) return res.status(400).json({ message: "Invalid invitation details." });
+    if (!isValidEmail(email) || !firstName || !lastName || !allowedRoles.includes(role)) return res.status(400).json({ message: "Invalid invitation details." });
 
     const token = randomToken();
     const invitation = await prisma.adminInvitation.create({
-      data: { email, role, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), createdById: req.admin.id },
+      data: { email, firstName, lastName, phone, role, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), createdById: req.admin.id },
     });
+    const inviteUrl = `${config.frontendUrl}/?screen=setup&email=${encodeURIComponent(email)}&firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}&inviteToken=${encodeURIComponent(token)}`;
+    const emailSent = await sendAdminInvitation({ email, firstName, inviteUrl, role });
     await audit(req, "ADMIN_INVITATION_CREATED", { email, role }, invitation.id);
-    return res.status(201).json({ invitation: { id: invitation.id, email, role, expiresAt: invitation.expiresAt, token } });
+    return res.status(201).json({ invitation: { id: invitation.id, email, firstName, lastName, phone, role, expiresAt: invitation.expiresAt, token, inviteUrl, emailSent } });
   } catch (error) {
     next(error);
   }

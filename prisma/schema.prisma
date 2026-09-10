@@ -13,6 +13,12 @@ model AdminUser {
   passwordHash        String
   firstName           String
   lastName            String
+  phone               String?
+  gender              String?
+  avatarUrl           String?
+  verified            Boolean             @default(true)
+  twoFactorEnabled    Boolean             @default(false)
+  twoFactorMethod     String?
   role                AdminRole           @default(ADMIN)
   status              AdminStatus         @default(ACTIVE)
   failedLoginAttempts Int                 @default(0)
@@ -22,8 +28,11 @@ model AdminUser {
   updatedAt           DateTime            @updatedAt
   sessions            AdminSession[]
   passwordResetCodes  PasswordResetCode[]
-  auditLogs            AdminAuditLog[]
+  auditLogs           AdminAuditLog[]
   invitationsCreated  AdminInvitation[]   @relation("InvitationCreator")
+  communications      AdminCommunication[]
+  twoFactorCodes      AdminTwoFactorCode[]
+  notifications       AdminNotification[]
 
   @@index([role, status])
 }
@@ -43,6 +52,32 @@ model AdminSession {
   @@index([expiresAt])
 }
 
+model AdminTwoFactorCode {
+  id        String    @id @default(uuid())
+  userId    String
+  codeHash  String
+  method    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now())
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+}
+
+model AdminNotification {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  imageUrl  String?
+  linkUrl   String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, readAt, createdAt])
+}
+
 model PasswordResetCode {
   id        String    @id @default(uuid())
   userId    String
@@ -60,6 +95,9 @@ model PasswordResetCode {
 model AdminInvitation {
   id          String     @id @default(uuid())
   email       String
+  firstName   String?
+  lastName    String?
+  phone       String?
   tokenHash   String     @unique
   role        AdminRole  @default(ADMIN)
   expiresAt   DateTime
@@ -86,6 +124,55 @@ model AdminAuditLog {
 
   @@index([adminId, createdAt])
   @@index([action, createdAt])
+}
+
+model SystemControlSettings {
+  id                         String   @id @default("global")
+  maxQueueSize               Int      @default(40)
+  maxWaitMinutes             Int      @default(252)
+  whoCanRefer                String   @default("CLINICIANS_AND_SPECIALISTS")
+  whoCanAcceptReferral       String   @default("SPECIALIST")
+  referralAutoCancelDays     Int      @default(3)
+  reReferralEnabled          Boolean  @default(true)
+  multiReferralLimit         Int      @default(3)
+  maxBookingsPerPatientDay   Int      @default(1)
+  advanceBookingLimitDays    Int      @default(40)
+  cancellationRole           String   @default("PATIENT_AND_CLINICIAN")
+  emailNotificationsEnabled  Boolean  @default(false)
+  pushNotificationsEnabled   Boolean  @default(false)
+  smsNotificationsEnabled    Boolean  @default(false)
+  updatedById                String?
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+}
+
+model AdminCommunication {
+  id               String    @id @default(uuid())
+  title            String
+  message          String
+  contentBlocks    Json?
+  imageUrl         String?
+  documentUrl      String?
+  audiences        Json
+  channels         Json
+  status           String    @default("DRAFT")
+  scheduledFor     DateTime?
+  sentAt           DateTime?
+  cancelledAt      DateTime?
+  failureReason    String?
+  recipientCount   Int       @default(0)
+  pushDelivered    Int       @default(0)
+  pushOpened       Int       @default(0)
+  emailDelivered   Int       @default(0)
+  emailOpened      Int       @default(0)
+  smsDelivered     Int       @default(0)
+  createdById      String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  createdBy        AdminUser @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([status, scheduledFor])
+  @@index([createdById, createdAt])
 }
 
 enum AdminRole {

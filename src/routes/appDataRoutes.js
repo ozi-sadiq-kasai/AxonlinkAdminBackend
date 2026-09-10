@@ -1,0 +1,28 @@
+import { Router } from "express";
+import { denyAppPatientRecordAccess, endAppActivityConsultation, getAppActivities, getAppActivityAppointment, getAppFacility, getAppPatient, getAppReferral, getAppReferrals, getAppReports, getAppSpecialist, grantAppPatientRecordAccess, liftAppUserSuspension, listAppFacilities, listAppPatients, listAppSpecialists, resetAppUserAccess, reviewAppFacility, reviewAppFacilityDocument, reviewAppSpecialistDocument, revokeAppPatientRecordAccess, suspendAppUser } from "../controllers/appDataController.js";
+import { requireAdmin, requireRole } from "../middleware/security.js";
+
+const router = Router();
+router.use(requireAdmin);
+router.get("/patients", requireRole("SUPER_ADMIN", "SUPPORT", "AUDITOR"), listAppPatients);
+router.get("/patients/:patientId", requireRole("SUPER_ADMIN", "SUPPORT", "AUDITOR"), getAppPatient);
+router.get("/specialists", requireRole("SUPER_ADMIN", "SUPPORT", "AUDITOR"), listAppSpecialists);
+router.get("/specialists/:clinicianId", requireRole("SUPER_ADMIN", "SUPPORT", "AUDITOR"), getAppSpecialist);
+router.post("/specialists/:clinicianId/documents/:documentType/review", requireRole("SUPER_ADMIN"), reviewAppSpecialistDocument);
+router.get("/facilities", requireRole("SUPER_ADMIN", "SUPPORT", "AUDITOR"), listAppFacilities);
+router.get("/facilities/:facilityId", requireRole("SUPER_ADMIN", "SUPPORT", "AUDITOR"), getAppFacility);
+router.post("/facilities/:facilityId/documents/:affiliationId/review", requireRole("SUPER_ADMIN"), reviewAppFacilityDocument);
+router.post("/facilities/:facilityId/review", requireRole("SUPER_ADMIN"), reviewAppFacility);
+router.get("/activities", requireRole("SUPER_ADMIN", "ADMIN", "SUPPORT"), getAppActivities);
+router.get("/reports", requireRole("SUPER_ADMIN"), getAppReports);
+router.get("/activities/appointments/:appointmentId", requireRole("SUPER_ADMIN", "ADMIN", "SUPPORT"), getAppActivityAppointment);
+router.post("/activities/appointments/:appointmentId/end", requireRole("SUPER_ADMIN"), endAppActivityConsultation);
+router.get("/referrals", requireRole("SUPER_ADMIN", "ADMIN"), getAppReferrals);
+router.get("/referrals/:referralId", requireRole("SUPER_ADMIN", "ADMIN"), getAppReferral);
+router.post("/patients/:patientId/access-grants/:grantId/grant", requireRole("SUPER_ADMIN"), grantAppPatientRecordAccess);
+router.post("/patients/:patientId/access-grants/:grantId/deny", requireRole("SUPER_ADMIN"), denyAppPatientRecordAccess);
+router.post("/patients/:patientId/access-grants/:grantId/revoke", requireRole("SUPER_ADMIN"), revokeAppPatientRecordAccess);
+router.post("/users/:userId/suspensions", requireRole("SUPER_ADMIN"), suspendAppUser);
+router.delete("/users/:userId/suspension", requireRole("SUPER_ADMIN"), liftAppUserSuspension);
+router.post("/users/:userId/reset-access", requireRole("SUPER_ADMIN"), resetAppUserAccess);
+export default router;

@@ -24,7 +24,13 @@ export function securityHeaders(_req, res, next) {
   next();
 }
 
-export const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false });
+const unrestricted = (_req, _res, next) => next();
+
+// Keep local development friction-free. Production still limits authentication
+// traffic to protect administrator accounts from automated guessing attacks.
+export const authLimiter = config.nodeEnv === "production"
+  ? rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false })
+  : unrestricted;
 export const resetLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false });
 
 export async function requireAdmin(req, res, next) {

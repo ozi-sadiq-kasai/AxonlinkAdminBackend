@@ -26,5 +26,10 @@ export function publicAdmin(user) {
     lastName: user.lastName,
     role: user.role,
     status: user.status,
+    phone: user.phone,
+    gender: user.gender,
+    avatarUrl: user.avatarUrl,
+    verified: user.verified,
+    twoFactorEnabled: user.twoFactorEnabled,
   };
 }

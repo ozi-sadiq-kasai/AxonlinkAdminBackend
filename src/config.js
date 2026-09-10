@@ -28,4 +28,7 @@ export const config = {
   refreshDays: Number(process.env.REFRESH_TOKEN_DAYS || 30),
   resetCodeMinutes: Number(process.env.RESET_CODE_MINUTES || 10),
   bootstrapSecret: process.env.ADMIN_BOOTSTRAP_SECRET || "",
+  frontendUrl: (process.env.ADMIN_FRONTEND_URL || "http://localhost:5173").replace(/\/$/, ""),
+  appApiUrl: (process.env.AXONLINK_APP_API_URL || "http://localhost:5030").replace(/\/$/, ""),
+  appServiceSecret: process.env.AXONLINK_SERVICE_SECRET || (process.env.NODE_ENV === "production" ? "" : "development-admin-service-secret-change-me"),
 };
