@@ -68,6 +68,75 @@ Configure `axonlinkappbackend` with:
 ADMIN_SERVICE_SECRET=the-same-random-secret-used-by-the-admin-backend
 ```
 
-Generate the shared value with `openssl rand -hex 32`. On Railway, use the app
-backend's private service hostname for `AXONLINK_APP_API_URL`. The browser must
+Generate the shared value with `openssl rand -hex 32`. When both services share private network connectivity, use the app
+backend's private service hostname for `AXONLINK_APP_API_URL`; otherwise use its
+public HTTPS origin. The browser must
 never receive this secret or call the internal app endpoints directly.
+
+## Production deployment on Railway
+
+Use a dedicated PostgreSQL database for this admin service. Do not point its
+Prisma migrations at the app backend database. The two services exchange data
+through the authenticated app API.
+
+Railway service settings (repository root contains `package.json`):
+
+- Branch: `main`; root directory: leave empty.
+- Build command: automatic dependency installation; no compilation needed.
+- Start command: `npm run start:production`.
+- Pre-deploy command: leave empty with this start command (it runs migrations).
+- Healthcheck: `/api/health`.
+- Runtime: Node 22, selected by `package.json`.
+- Let Railway provide `PORT`; generate a public HTTPS domain after deployment.
+
+`start:production` checks configuration, applies committed Prisma migrations,
+then starts the API. It exits on a configuration or migration failure. Never
+use `prisma migrate dev` or `prisma migrate reset` against production.
+
+Set these variables on the **admin backend** service:
+
+| Variable | Production value |
+| --- | --- |
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}`, using the admin database service's exact name |
+| `ACCESS_TOKEN_SECRET` | A unique random secret |
+| `REFRESH_TOKEN_SECRET` | Another unique random secret |
+| `RESET_TOKEN_SECRET` | Another unique random secret |
+| `ADMIN_BOOTSTRAP_SECRET` | A separate random secret for first-admin creation; remove afterward |
+| `ADMIN_FRONTEND_URL` | Actual admin frontend HTTPS origin, without a trailing slash |
+| `CORS_ALLOWED_ORIGINS` | Exact admin frontend origins, comma-separated, without trailing slashes |
+| `AXONLINK_APP_API_URL` | `https://axonlinkappbackend-production-ac34.up.railway.app` (no `/api` suffix) |
+| `AXONLINK_SERVICE_SECRET` | Exactly the app backend's production `ADMIN_SERVICE_SECRET` |
+| `EMAIL_PROVIDER` | `resend` |
+| `RESEND_API_KEY` | Production sending key from Resend |
+| `EMAIL_FROM` | Sender on your verified Resend domain, optionally `AxonLink Admin <address@your-domain>` |
+
+Generate each new secret separately with `openssl rand -hex 32`. Keep secrets
+out of Git and the Vercel frontend. For separate Railway projects, use the app
+backend's public HTTPS URL above; a private hostname only works where private
+network connectivity is available.
+
+Resend uses HTTPS and does not require SMTP variables. Existing SMTP deployments
+remain supported with `EMAIL_PROVIDER=smtp`, `SMTP_HOST`, `SMTP_PORT`,
+`SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD`, and `SMTP_FROM`. A Resend webhook
+secret is not used by this admin service.
+
+Set `VITE_ADMIN_API_URL` in the admin Vercel project to the **admin backend's**
+public HTTPS origin and redeploy that frontend. Prefer a custom API hostname
+under the same domain as the admin website so browser third-party-cookie
+restrictions do not interfere with its refresh-cookie flow.
+
+### Verification before opening production access
+
+1. Run `npm ci`, `npm test`, `npx prisma validate`, and `npx prisma generate`.
+2. With production variables configured, run `npm run env:check` (reports names,
+   never secret values).
+3. Deploy and confirm successful migrations and `/api/health` returning 200.
+   The health endpoint checks process availability, not database connectivity.
+4. Bootstrap the first super admin as described above, then remove
+   `ADMIN_BOOTSTRAP_SECRET` and redeploy. Invitations remain the signup path.
+5. Verify login, page reload/session refresh, logout, password-reset email,
+   invitation email, and a live patient/clinician list from the app backend.
+
+Local unit tests do not establish successful Railway deployment, database
+migration, browser cookie behavior, or actual email delivery.

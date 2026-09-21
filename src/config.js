@@ -1,14 +1,29 @@
-const requiredInProduction = [
+export const requiredInProduction = [
   "DATABASE_URL",
   "ACCESS_TOKEN_SECRET",
   "REFRESH_TOKEN_SECRET",
   "RESET_TOKEN_SECRET",
+  "CORS_ALLOWED_ORIGINS",
+  "ADMIN_FRONTEND_URL",
+  "AXONLINK_APP_API_URL",
+  "AXONLINK_SERVICE_SECRET",
 ];
+
+export function inspectConfiguration(environment = process.env) {
+  const missing = requiredInProduction.filter((name) => !environment[name]?.trim());
+  const provider = (environment.EMAIL_PROVIDER || "smtp").trim().toLowerCase();
+  const emailVariables = provider === "resend"
+    ? ["RESEND_API_KEY", "EMAIL_FROM"]
+    : ["SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD"];
+  if (!["resend", "smtp"].includes(provider)) missing.push("EMAIL_PROVIDER (use resend or smtp)");
+  missing.push(...emailVariables.filter((name) => !environment[name]?.trim()));
+  return missing;
+}
 
 export function assertConfiguration() {
   if (process.env.NODE_ENV !== "production") return;
 
-  const missing = requiredInProduction.filter((name) => !process.env[name]?.trim());
+  const missing = inspectConfiguration(process.env);
   if (missing.length) {
     throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
   }
