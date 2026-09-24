@@ -8,6 +8,7 @@ import appDataRoutes from "./routes/appDataRoutes.js";
 import systemControlRoutes from "./routes/systemControlRoutes.js";
 import communicationRoutes from "./routes/communicationRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
+import deletionRequestRoutes from "./routes/deletionRequestRoutes.js";
 import { startCommunicationScheduler } from "./services/communicationService.js";
 
 assertConfiguration();
@@ -25,6 +26,13 @@ app.use("/api/app", appDataRoutes);
 app.use("/api/system-control", systemControlRoutes);
 app.use("/api/communications", communicationRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/deletion-requests", deletionRequestRoutes);
+app.get("/account-deletion", (_req, res) => {
+  const destination = new URL("/account-deletion?scope=ADMIN", config.appApiUrl);
+  if (config.nodeEnv === "production" && destination.protocol !== "https:") return res.status(503).send("Account deletion is not configured.");
+  res.setHeader("Cache-Control", "no-store");
+  res.redirect(302, destination.toString());
+});
 
 app.use((_req, res) => res.status(404).json({ message: "Route not found." }));
 app.use((error, _req, res, _next) => {
