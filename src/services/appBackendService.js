@@ -13,7 +13,7 @@ function serviceToken(admin) {
 export async function appBackendRequest(admin, path, { method = "GET", body, timeoutMs = 12000 } = {}) {
   let response;
   try {
-    response = await fetch(`${config.appApiUrl}/internal/admin/v1${path}`, {
+    response = await fetch(`${path === "/dashboard" ? (process.env.AXONLINK_DASHBOARD_API_URL || config.appApiUrl).replace(/\/$/, "") : config.appApiUrl}/internal/admin/v1${path}`, {
       method,
       headers: { Authorization: `Bearer ${serviceToken(admin)}`, Accept: "application/json", ...(body ? { "Content-Type": "application/json" } : {}) },
       body: body ? JSON.stringify(body) : undefined,

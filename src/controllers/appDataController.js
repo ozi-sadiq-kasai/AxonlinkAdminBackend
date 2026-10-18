@@ -126,3 +126,12 @@ export async function resetAppUserAccess(req, res, next) {
     res.json(payload);
   } catch (error) { next(error); }
 }
+
+export async function getAppDashboard(req, res, next) {
+  try {
+    const data = await appBackendRequest(req.admin, "/dashboard", { timeoutMs: 20000 });
+    if (!data || !Array.isArray(data.overview)) throw Object.assign(new Error("Dashboard data is unavailable."), { statusCode: 502 });
+    res.setHeader("Cache-Control", "no-store");
+    res.json(data);
+  } catch (error) { next(error); }
+}

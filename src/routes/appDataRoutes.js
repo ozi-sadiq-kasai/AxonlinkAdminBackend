@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { denyAppPatientRecordAccess, endAppActivityConsultation, getAppActivities, getAppActivityAppointment, getAppFacility, getAppPatient, getAppReferral, getAppReferrals, getAppReports, getAppSpecialist, grantAppPatientRecordAccess, liftAppUserSuspension, listAppFacilities, listAppPatients, listAppSpecialists, resetAppUserAccess, reviewAppFacility, reviewAppFacilityDocument, reviewAppSpecialistDocument, revokeAppPatientRecordAccess, suspendAppUser } from "../controllers/appDataController.js";
+import { getAppDashboard, denyAppPatientRecordAccess, endAppActivityConsultation, getAppActivities, getAppActivityAppointment, getAppFacility, getAppPatient, getAppReferral, getAppReferrals, getAppReports, getAppSpecialist, grantAppPatientRecordAccess, liftAppUserSuspension, listAppFacilities, listAppPatients, listAppSpecialists, resetAppUserAccess, reviewAppFacility, reviewAppFacilityDocument, reviewAppSpecialistDocument, revokeAppPatientRecordAccess, suspendAppUser } from "../controllers/appDataController.js";
 import { requireAdmin, requireRole } from "../middleware/security.js";
 
 const router = Router();
 router.use(requireAdmin);
+router.get("/dashboard", requireRole("SUPER_ADMIN", "ADMIN", "SUPPORT", "AUDITOR"), getAppDashboard);
 router.get("/patients", requireRole("SUPER_ADMIN", "SUPPORT", "AUDITOR"), listAppPatients);
 router.get("/patients/:patientId", requireRole("SUPER_ADMIN", "SUPPORT", "AUDITOR"), getAppPatient);
 router.get("/specialists", requireRole("SUPER_ADMIN", "SUPPORT", "AUDITOR"), listAppSpecialists);
