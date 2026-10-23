@@ -135,3 +135,19 @@ export async function getAppDashboard(req, res, next) {
     res.json(data);
   } catch (error) { next(error); }
 }
+
+export async function listAppClassificationRequests(req, res, next) {
+  try {
+    const status = String(req.query.status || 'PENDING_REVIEW');
+    const payload = await appBackendRequest(req.admin, `/classification-requests?status=${encodeURIComponent(status)}`);
+    // App-signed document links must resolve against the app backend, not Admin's origin.
+    const { config } = await import('../config.js');
+    res.json({ ...payload, requests: payload.requests.map(item => ({ ...item, documentUrl: item.documentUrl?.startsWith('/api/assets?') ? new URL(item.documentUrl, config.appApiUrl).href : null })) });
+  } catch (error) { next(error); }
+}
+export async function reviewAppClassificationRequest(req, res, next) {
+  try {
+    const { decision, rejectionReason, credentialReviewed } = req.body || {};
+    res.json(await appBackendRequest(req.admin, `/classification-requests/${encodeURIComponent(req.params.id)}/review`, { method: 'POST', body: { decision, rejectionReason, credentialReviewed } }));
+  } catch (error) { next(error); }
+}
