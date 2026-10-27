@@ -1,11 +1,16 @@
-import { listAppClassificationRequests, reviewAppClassificationRequest } from "../controllers/appDataController.js";
+import { listAppAlliedMedicalOfficers, getAppAlliedMedicalOfficer, reviewAppAlliedMedicalOfficer } from "../controllers/appDataController.js";
+import { getAppClassificationRequest, listAppClassificationRequests, reviewAppClassificationRequest } from "../controllers/appDataController.js";
 import { Router } from "express";
 import { getAppDashboard, denyAppPatientRecordAccess, endAppActivityConsultation, getAppActivities, getAppActivityAppointment, getAppFacility, getAppPatient, getAppReferral, getAppReferrals, getAppReports, getAppSpecialist, grantAppPatientRecordAccess, liftAppUserSuspension, listAppFacilities, listAppPatients, listAppSpecialists, resetAppUserAccess, reviewAppFacility, reviewAppFacilityDocument, reviewAppSpecialistDocument, revokeAppPatientRecordAccess, suspendAppUser } from "../controllers/appDataController.js";
 import { requireAdmin, requireRole } from "../middleware/security.js";
 
 const router = Router();
 router.use(requireAdmin);
+router.get("/allied-medical-officers", requireRole("SUPER_ADMIN"), listAppAlliedMedicalOfficers);
+router.get("/allied-medical-officers/:clinicianId", requireRole("SUPER_ADMIN"), getAppAlliedMedicalOfficer);
+router.post("/allied-medical-officers/:clinicianId/review", requireRole("SUPER_ADMIN"), reviewAppAlliedMedicalOfficer);
 router.get("/classification-requests", requireRole("SUPER_ADMIN"), listAppClassificationRequests);
+router.get("/classification-requests/:id", requireRole("SUPER_ADMIN"), getAppClassificationRequest);
 router.post("/classification-requests/:id/review", requireRole("SUPER_ADMIN"), reviewAppClassificationRequest);
 router.get("/dashboard", requireRole("SUPER_ADMIN", "ADMIN", "SUPPORT", "AUDITOR"), getAppDashboard);
 router.get("/patients", requireRole("SUPER_ADMIN", "SUPPORT", "AUDITOR"), listAppPatients);

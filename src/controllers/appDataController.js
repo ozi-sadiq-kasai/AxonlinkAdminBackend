@@ -29,6 +29,11 @@ export async function listAppSpecialists(req, res, next) {
 export async function getAppSpecialist(req, res, next) {
   try {
     const payload = await appBackendRequest(req.admin, `/specialists/${encodeURIComponent(req.params.clinicianId)}`);
+    const { config } = await import('../config.js');
+    const localUrl = value => value?.startsWith('/api/assets?') ? new URL(value, config.appApiUrl).href : value;
+    for (const document of Object.values(payload.documents || {})) document.url = localUrl(document.url);
+    if (payload.employmentDocument) payload.employmentDocument.url = localUrl(payload.employmentDocument.url);
+    for (const event of payload.verificationHistory || []) event.documentUrl = localUrl(event.documentUrl);
     await audit(req, "APP_SPECIALIST_PROFILE_VIEWED", { clinicianId: req.params.clinicianId });
     res.json(payload);
   } catch (error) { next(error); }
@@ -36,7 +41,8 @@ export async function getAppSpecialist(req, res, next) {
 
 export async function reviewAppSpecialistDocument(req, res, next) {
   try {
-    const payload = await appBackendRequest(req.admin, `/specialists/${encodeURIComponent(req.params.clinicianId)}/documents/${encodeURIComponent(req.params.documentType)}/review`, { method: "POST", body: req.body });
+    const { action, note, expectedVersion } = req.body || {};
+    const payload = await appBackendRequest(req.admin, `/specialists/${encodeURIComponent(req.params.clinicianId)}/documents/${encodeURIComponent(req.params.documentType)}/review`, { method: "POST", body: { action, note, expectedVersion } });
     await audit(req, "APP_SPECIALIST_DOCUMENT_REVIEWED", { clinicianId: req.params.clinicianId, documentType: req.params.documentType, action: req.body.action }, req.params.clinicianId);
     res.json(payload);
   } catch (error) { next(error); }
@@ -147,7 +153,47 @@ export async function listAppClassificationRequests(req, res, next) {
 }
 export async function reviewAppClassificationRequest(req, res, next) {
   try {
-    const { decision, rejectionReason, credentialReviewed } = req.body || {};
-    res.json(await appBackendRequest(req.admin, `/classification-requests/${encodeURIComponent(req.params.id)}/review`, { method: 'POST', body: { decision, rejectionReason, credentialReviewed } }));
+    const { decision, rejectionReason, credentialReviewed, identityReviewed } = req.body || {};
+    res.json(await appBackendRequest(req.admin, `/classification-requests/${encodeURIComponent(req.params.id)}/review`, { method: 'POST', body: { decision, rejectionReason, credentialReviewed, identityReviewed } }));
+  } catch (error) { next(error); }
+}
+
+export async function getAppClassificationRequest(req,res,next) {
+  try {
+    const payload=await appBackendRequest(req.admin, `/classification-requests/${encodeURIComponent(req.params.id)}`);
+    const {config}=await import('../config.js');
+    const secureUrl=value=>value?.startsWith('/api/assets?')?new URL(value,config.appApiUrl).href:null;
+    const request=payload.request;
+    res.json({...payload,request:{...request,documentUrl:secureUrl(request.documentUrl),clinician:{...request.clinician,licenseDocumentUrl:secureUrl(request.clinician.licenseDocumentUrl),degreeDocumentUrl:secureUrl(request.clinician.degreeDocumentUrl)}}});
+  }catch(error){next(error);}
+}
+
+export async function listAppAlliedMedicalOfficers(req, res, next) {
+  try { res.json(await appBackendRequest(req.admin, '/allied-medical-officers')); }
+  catch (error) { next(error); }
+}
+
+export async function getAppAlliedMedicalOfficer(req, res, next) {
+  try {
+    const payload = await appBackendRequest(req.admin, `/allied-medical-officers/${encodeURIComponent(req.params.clinicianId)}`);
+    const { config } = await import('../config.js');
+    const localUrl = value => value?.startsWith('/api/assets?') ? new URL(value, config.appApiUrl).href : value;
+    if (payload.credential) {
+      payload.credential.certificateUrl = localUrl(payload.credential.certificateUrl);
+      payload.credential.licenceUrl = localUrl(payload.credential.licenceUrl);
+    }
+    if (payload.employmentDocument) payload.employmentDocument.url = localUrl(payload.employmentDocument.url);
+    for (const event of payload.verificationHistory || []) event.documentUrl = localUrl(event.documentUrl);
+    await audit(req, 'APP_ALLIED_PROFILE_VIEWED', { clinicianId: req.params.clinicianId });
+    res.json(payload);
+  } catch (error) { next(error); }
+}
+
+export async function reviewAppAlliedMedicalOfficer(req, res, next) {
+  try {
+    const { action, note, expectedVersion } = req.body || {};
+    const payload = await appBackendRequest(req.admin, `/allied-medical-officers/${encodeURIComponent(req.params.clinicianId)}/review`, { method: 'POST', body: { action, note, expectedVersion, documentType: req.body.documentType } });
+    await audit(req, 'APP_ALLIED_CREDENTIAL_REVIEWED', { clinicianId: req.params.clinicianId, action }, req.params.clinicianId);
+    res.json(payload);
   } catch (error) { next(error); }
 }
