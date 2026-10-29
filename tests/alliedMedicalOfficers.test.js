@@ -16,8 +16,8 @@ test('Allied proxy routes require existing Super Admin role',()=>{for(const laye
 test('employment document proxy resolves secure asset URL without adding review state',async t=>{
  const oldFetch=globalThis.fetch,oldAudit=prisma.adminAuditLog.create;
  prisma.adminAuditLog.create=async()=>({});
- globalThis.fetch=async()=>({ok:true,json:async()=>({employmentDocument:{name:'letter.pdf',url:'/api/assets?sig=employment'}})});
+ globalThis.fetch=async()=>({ok:true,json:async()=>({employmentDocuments:[{affiliationId:'hospital-1',hospital:'Axon Hospital',name:'letter.pdf',submitted:true,url:'/api/assets?sig=employment'}]})});
  t.after(()=>{globalThis.fetch=oldFetch;prisma.adminAuditLog.create=oldAudit;});
  const res=response();await getAppAlliedMedicalOfficer({admin:{id:'admin',role:'SUPER_ADMIN'},params:{clinicianId:'p'},get:()=>''},res,e=>{throw e;});
- assert.deepEqual(res.body.employmentDocument,{name:'letter.pdf',url:new URL('/api/assets?sig=employment',config.appApiUrl).href});
+ assert.deepEqual(res.body.employmentDocuments,[{affiliationId:'hospital-1',hospital:'Axon Hospital',name:'letter.pdf',submitted:true,url:new URL('/api/assets?sig=employment',config.appApiUrl).href}]);
 });

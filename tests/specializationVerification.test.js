@@ -19,8 +19,15 @@ test('authenticated detail preserves per-certificate status and resolves signed 
 test('employment document proxy resolves secure asset URL without adding review state',async t=>{
  const oldFetch=globalThis.fetch,oldAudit=prisma.adminAuditLog.create;
  prisma.adminAuditLog.create=async()=>({});
- globalThis.fetch=async()=>({ok:true,json:async()=>({employmentDocument:{name:'letter.pdf',url:'/api/assets?sig=employment'}})});
+ globalThis.fetch=async()=>({ok:true,json:async()=>({employmentDocuments:[{affiliationId:'hospital-1',hospital:'Axon Hospital',name:'letter.pdf',submitted:true,url:'/api/assets?sig=employment'}]})});
  t.after(()=>{globalThis.fetch=oldFetch;prisma.adminAuditLog.create=oldAudit;});
  const res=response();await getAppSpecialist({admin:{id:'admin',role:'SUPER_ADMIN'},params:{clinicianId:'p'},get:()=>''},res,e=>{throw e;});
- assert.deepEqual(res.body.employmentDocument,{name:'letter.pdf',url:new URL('/api/assets?sig=employment',config.appApiUrl).href});
+ assert.deepEqual(res.body.employmentDocuments,[{affiliationId:'hospital-1',hospital:'Axon Hospital',name:'letter.pdf',submitted:true,url:new URL('/api/assets?sig=employment',config.appApiUrl).href}]);
+});
+
+test('affiliation employment proxy preserves hospital and submitted status with secure viewing',async t=>{
+ const oldAudit=prisma.adminAuditLog.create;prisma.adminAuditLog.create=async()=>({});t.after(()=>{prisma.adminAuditLog.create=oldAudit;});
+ t.mock.method(globalThis,'fetch',async()=>({ok:true,json:async()=>({employmentDocuments:[{affiliationId:'a',hospital:'Hospital',name:'id.pdf',submitted:true,url:'/api/assets?sig=affiliation'}]})}));
+ const res=response();await getAppSpecialist({admin:{id:'admin',role:'SUPER_ADMIN'},params:{clinicianId:'p'},get:()=>''},res,e=>{throw e;});
+ assert.deepEqual(res.body.employmentDocuments,[{affiliationId:'a',hospital:'Hospital',name:'id.pdf',submitted:true,url:new URL('/api/assets?sig=affiliation',config.appApiUrl).href}]);
 });

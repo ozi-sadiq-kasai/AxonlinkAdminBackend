@@ -32,7 +32,7 @@ export async function getAppSpecialist(req, res, next) {
     const { config } = await import('../config.js');
     const localUrl = value => value?.startsWith('/api/assets?') ? new URL(value, config.appApiUrl).href : value;
     for (const document of Object.values(payload.documents || {})) document.url = localUrl(document.url);
-    if (payload.employmentDocument) payload.employmentDocument.url = localUrl(payload.employmentDocument.url);
+    for (const document of payload.employmentDocuments || []) document.url = localUrl(document.url);
     for (const event of payload.verificationHistory || []) event.documentUrl = localUrl(event.documentUrl);
     await audit(req, "APP_SPECIALIST_PROFILE_VIEWED", { clinicianId: req.params.clinicianId });
     res.json(payload);
@@ -182,7 +182,7 @@ export async function getAppAlliedMedicalOfficer(req, res, next) {
       payload.credential.certificateUrl = localUrl(payload.credential.certificateUrl);
       payload.credential.licenceUrl = localUrl(payload.credential.licenceUrl);
     }
-    if (payload.employmentDocument) payload.employmentDocument.url = localUrl(payload.employmentDocument.url);
+    for (const document of payload.employmentDocuments || []) document.url = localUrl(document.url);
     for (const event of payload.verificationHistory || []) event.documentUrl = localUrl(event.documentUrl);
     await audit(req, 'APP_ALLIED_PROFILE_VIEWED', { clinicianId: req.params.clinicianId });
     res.json(payload);
